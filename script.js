@@ -5,19 +5,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const navItems = document.querySelectorAll('.nav-links li');
     
     // Toggle mobile menu
-    burger.addEventListener('click', () => {
+    function toggleMenu() {
         navLinks.classList.toggle('active');
         burger.classList.toggle('toggle');
         document.body.classList.toggle('no-scroll');
-    });
+    }
+    
+    burger.addEventListener('click', toggleMenu);
     
     // Close mobile menu when clicking a link
     navItems.forEach(item => {
         item.addEventListener('click', () => {
             if (window.innerWidth <= 768) {
-                navLinks.classList.remove('active');
-                burger.classList.remove('toggle');
-                document.body.classList.remove('no-scroll');
+                toggleMenu();
             }
         });
     });
@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // ===== COUNTDOWN TIMER (ALL PAGES) =====
+    // ===== COUNTDOWN TIMER =====
     function updateCountdown() {
         const eventDate = new Date('August 10, 2025 00:00:00').getTime();
         const now = new Date().getTime();
@@ -50,16 +50,16 @@ document.addEventListener('DOMContentLoaded', function() {
         const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((distance % (1000 * 60)) / 1000);
         
-        // Safely update elements if they exist on page
-        const daysEl = document.getElementById('days');
-        const hoursEl = document.getElementById('hours');
-        const minutesEl = document.getElementById('minutes');
-        const secondsEl = document.getElementById('seconds');
+        // Safely update elements
+        const updateElement = (id, value) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value.toString().padStart(2, '0');
+        };
         
-        if (daysEl) daysEl.textContent = days.toString().padStart(2, '0');
-        if (hoursEl) hoursEl.textContent = hours.toString().padStart(2, '0');
-        if (minutesEl) minutesEl.textContent = minutes.toString().padStart(2, '0');
-        if (secondsEl) secondsEl.textContent = seconds.toString().padStart(2, '0');
+        updateElement('days', days);
+        updateElement('hours', hours);
+        updateElement('minutes', minutes);
+        updateElement('seconds', seconds);
     }
     
     // Initialize countdown if elements exist
@@ -68,91 +68,56 @@ document.addEventListener('DOMContentLoaded', function() {
         setInterval(updateCountdown, 1000);
     }
     
-    // ===== SMOOTH SCROLLING FOR ANCHOR LINKS =====
+    // ===== SMOOTH SCROLLING =====
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function(e) {
-            // Skip if this is an external link
-            if (this.getAttribute('href').startsWith('#') === false) return;
-            
-            e.preventDefault();
-            
-            // Close mobile menu if open
-            if (navLinks.classList.contains('active')) {
-                navLinks.classList.remove('active');
-                burger.classList.remove('toggle');
-                document.body.classList.remove('no-scroll');
-            }
-            
-            const targetId = this.getAttribute('href');
-            const targetElement = document.querySelector(targetId);
-            
-            if (targetElement) {
-                window.scrollTo({
-                    top: targetElement.offsetTop - 80,
-                    behavior: 'smooth'
-                });
+            if (this.getAttribute('href').startsWith('#')) {
+                e.preventDefault();
                 
-                // Update URL without page reload
-                if (history.pushState) {
-                    history.pushState(null, null, targetId);
-                } else {
-                    location.hash = targetId;
+                // Close mobile menu if open
+                if (navLinks.classList.contains('active')) {
+                    toggleMenu();
+                }
+                
+                const targetElement = document.querySelector(this.getAttribute('href'));
+                if (targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 80,
+                        behavior: 'smooth'
+                    });
+                    
+                    // Update URL
+                    history.pushState(null, null, this.getAttribute('href'));
                 }
             }
         });
     });
     
-    // ===== ACTIVE NAV LINK HIGHLIGHTING =====
+    // ===== ACTIVE LINK HIGHLIGHTING =====
     function setActiveNavLink() {
         const currentPage = location.pathname.split('/').pop() || 'index.html';
-        const navLinks = document.querySelectorAll('.nav-links a');
-        
-        navLinks.forEach(link => {
-            const linkPage = link.getAttribute('href');
-            if ((currentPage === 'index.html' && linkPage === '#home') || 
-                linkPage.includes(currentPage)) {
-                link.classList.add('active');
-            } else {
-                link.classList.remove('active');
-            }
+        document.querySelectorAll('.nav-links a').forEach(link => {
+            link.classList.toggle(
+                'active',
+                link.getAttribute('href') === currentPage || 
+                (currentPage === 'index.html' && link.getAttribute('href') === '#home')
+            );
         });
     }
     setActiveNavLink();
+    
+    // ===== RESPONSIVE ADJUSTMENTS =====
+    function handleResize() {
+        if (window.innerWidth > 768 && navLinks.classList.contains('active')) {
+            toggleMenu();
+        }
+    }
+    window.addEventListener('resize', handleResize);
 });
-
-// ===== POLYFILLS =====
-// Smooth scrolling polyfill
-if (typeof window.scrollBehavior === 'undefined') {
-    window.scrollBehavior = function(options) {
-        const start = window.pageYOffset;
-        const target = options.top + start;
-        const duration = options.behavior === 'smooth' ? 500 : 0;
-        const startTime = performance.now();
-        
-        function step(currentTime) {
-            const elapsed = currentTime - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            const ease = function(t) { return t<.5 ? 2*t*t : -1+(4-2*t)*t };
-            
-            window.scrollTo(0, start + (target - start) * ease(progress));
-            
-            if (progress < 1) {
-                window.requestAnimationFrame(step);
-            }
-        }
-        
-        if (duration > 0) {
-            window.requestAnimationFrame(step);
-        } else {
-            window.scrollTo(0, target);
-        }
-    };
-}
 
 // ===== MOBILE VIEWPORT FIX =====
 function mobileViewportFix() {
-    let vh = window.innerHeight * 0.01;
-    document.documentElement.style.setProperty('--vh', `${vh}px`);
+    document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
 }
 window.addEventListener('resize', mobileViewportFix);
 mobileViewportFix();
